@@ -1,5 +1,6 @@
 const Comment = require("../models/comment");
 const { body, validationResult } = require("express-validator");
+const { verifyUser } = require("../utils/authenticate");
 
 exports.get_comments_article = (req, res, next) => {
   const articleId = req.params.id;
@@ -8,7 +9,7 @@ exports.get_comments_article = (req, res, next) => {
     .sort({ timestamp: -1 })
     .exec((err, comentList) => {
       if (err) {
-        return res.status(401).json(err);
+        return res.status(500).json(err);
       }
       return res.status(200).json(comentList);
     });
@@ -38,18 +39,25 @@ exports.post_comment_article = [
       if (err) {
         return res.status(500).json({ response: err });
       }
-      return res.status(200).json({ response: "comment added succesfully" });
+      return res
+        .status(200)
+        .json({ succes: true, response: "comment added succesfully" });
     });
   },
 ];
 
-exports.delete_comment_article = (req, res) => {
-  const commentId = req.params.commentId;
+exports.delete_comment_article = [
+  verifyUser,
+  (req, res) => {
+    const commentId = req.params.commentId;
 
-  Comment.findByIdAndDelete(commentId, {}, (err) => {
-    if (err) {
-      return res.status(401).json(err);
-    }
-    return res.status(200).json({ response: "comment deleted succefully" });
-  });
-};
+    Comment.findByIdAndDelete(commentId, {}, (err) => {
+      if (err) {
+        return res.status(500).json(err);
+      }
+      return res
+        .status(200)
+        .json({ succes: true, response: "comment deleted succefully" });
+    });
+  },
+];
