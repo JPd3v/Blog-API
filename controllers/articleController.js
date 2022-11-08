@@ -5,7 +5,8 @@ const article = require("../models/article");
 const { verifyUser } = require("../utils/authenticate");
 
 exports.get_articles = (req, res, next) => {
-  Article.find()
+  const published = req.query.published === "true" ? { published: true } : {};
+  Article.find(published)
     .populate("author", "-password -username")
     .sort({ published_date: -1 })
     .exec(function (err, articles_list) {
