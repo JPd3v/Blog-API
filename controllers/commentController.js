@@ -61,3 +61,19 @@ exports.delete_comment_article = [
     });
   },
 ];
+
+exports.delete_all_comments_of_article = async (req, res, next) => {
+  try {
+    const articleId = req.params.id;
+
+    const deleteComments = await Comment.deleteMany({ article_id: articleId });
+
+    return res.status(200).json({
+      succes: true,
+      response: "article deleted successfully",
+      comments_deleted: deleteComments,
+    });
+  } catch (error) {
+    return res.status(500).json(error);
+  }
+};

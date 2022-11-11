@@ -8,7 +8,11 @@ router.get("/", articlesController.get_articles);
 router.post("/", articlesController.post_article);
 router.get("/:id", articlesController.get_single_article);
 router.put("/:id", articlesController.put_article);
-router.delete("/:id", articlesController.delete_article);
+router.delete(
+  "/:id",
+  articlesController.delete_article,
+  commentController.delete_all_comments_of_article
+);
 
 // comments in articles routes
 router.get("/:id/comments", commentController.get_comments_article);

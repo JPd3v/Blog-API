@@ -27,6 +27,11 @@ exports.get_single_article = (req, res) => {
       if (err) {
         return res.status(403).json(err);
       }
+      if (!article_info) {
+        return res
+          .status(404)
+          .json({ error: "couldn't find article in database" });
+      }
       return res.status(200).json(article_info);
     });
 };
@@ -102,7 +107,7 @@ exports.put_article = [
 
 exports.delete_article = [
   verifyUser,
-  (req, res) => {
+  (req, res, next) => {
     const articleId = req.params.id;
 
     Article.findByIdAndDelete(articleId, {}, (err) => {
@@ -111,9 +116,8 @@ exports.delete_article = [
           .status(404)
           .json({ response: `cannot found article ${articleId}` });
       }
-      return res
-        .status(200)
-        .json({ succes: true, response: "article deleted successfully" });
+
+      return next();
     });
   },
 ];
