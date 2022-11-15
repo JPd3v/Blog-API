@@ -44,16 +44,16 @@ exports.post_user_sign_up = [
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(403).json(errors);
+      return res.status(409).json(errors);
     }
 
     User.findOne({ username: req.body.username }).exec((err, found_user) => {
       if (err) {
-        return res.status(403).json(err);
+        return res.status(409).json(err);
       }
 
       if (found_user) {
-        return res.json({ response: "E-Mail already in use" });
+        return res.status(403).json({ response: "E-Mail already in use" });
       }
       bcrypt.hash(req.body.password, 10, (err, hashedPassword) => {
         if (err) {
@@ -68,18 +68,26 @@ exports.post_user_sign_up = [
           refresh_token: "",
         }).save((err, user) => {
           if (err) {
-            return res.status(500).json({ response: err });
+            return res.status(409).json({ response: err });
           }
           console.log(user._id);
           const token = getToken({ _id: user._id });
           const refreshToken = getRefreshToken({ _id: user._id });
+
           user.refresh_token = refreshToken;
+          const userName = user.first_name;
+          const userLastName = user.last_name;
+          const userInfo = {
+            first_name: userName,
+            last_name: userLastName,
+          };
+
           user.save((err) => {
             if (err) {
-              return res.status(500).json({ response: err });
+              return res.status(409).json({ response: err });
             }
             res.cookie("refreshToken", refreshToken, COOKIE_OPTIONS);
-            return res.status(200).json({ token });
+            return res.status(200).json({ token, userInfo });
           });
         });
       });
@@ -103,7 +111,7 @@ exports.post_user_log_in = [
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(403).json(errors);
+      return res.status(409).json(errors);
     }
     next();
   },
@@ -117,13 +125,20 @@ exports.post_user_log_in = [
         return next(err);
       }
       user.refresh_token = refreshToken;
+      const userName = user.first_name;
+      const userLastName = user.last_name;
+
+      const userInfo = {
+        first_name: userName,
+        last_name: userLastName,
+      };
 
       user.save((err) => {
         if (err) {
           return res.status(500).json(err);
         } else {
           res.cookie("refreshToken", refreshToken, COOKIE_OPTIONS);
-          return res.json({ success: true, token });
+          return res.status(200).json({ token, userInfo });
         }
       });
     });
