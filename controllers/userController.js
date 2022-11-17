@@ -172,13 +172,21 @@ exports.get_new_token = (req, res, next) => {
           const token = getToken({ _id: userId });
           // if the refresh token exists, then create new one and replace it
           const newRefreshToken = getRefreshToken({ _id: userId });
+
           user.refresh_token = newRefreshToken;
+          const userName = user.first_name;
+          const userLastName = user.last_name;
+
+          const userInfo = {
+            first_name: userName,
+            last_name: userLastName,
+          };
           user.save((err, user) => {
             if (err) {
               return res.status(500).json(err);
             }
             res.cookie("refreshToken", newRefreshToken, COOKIE_OPTIONS);
-            return res.send({ success: true, token });
+            return res.status(200).send({ token, userInfo });
           });
         } else {
           return res.status(500).json(err);
