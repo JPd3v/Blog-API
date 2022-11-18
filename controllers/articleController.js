@@ -5,8 +5,13 @@ const article = require("../models/article");
 const { verifyUser } = require("../utils/authenticate");
 
 exports.get_articles = (req, res, next) => {
-  const published = req.query.published === "true" ? { published: true } : {};
-  Article.find(published)
+  let queryparams = {};
+
+  req.query.published ? (queryparams.published = req.query.published) : null;
+
+  req.query.author ? (queryparams.author = req.query.author) : null;
+
+  Article.find(queryparams)
     .populate("author", "-password -username")
     .sort({ published_date: -1 })
     .exec(function (err, articles_list) {
