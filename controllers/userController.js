@@ -1,4 +1,5 @@
 const User = require("../models/user");
+const Article = require("../models/article");
 const { body, validationResult } = require("express-validator");
 const bcrypt = require("bcryptjs");
 const passport = require("passport");
@@ -227,5 +228,21 @@ exports.get_log_out = [
     } catch (err) {
       return res.status(500).json(err);
     }
+  },
+];
+
+exports.get_user_articles = [
+  verifyUser,
+  (req, res) => {
+    Article.find({ author: req.user._id })
+      .populate("author")
+      .sort({ published_date: -1 })
+      .exec((error, article_list) => {
+        if (error) {
+          return res.status(500).json({ error: error });
+        }
+
+        res.status(200).json(article_list);
+      });
   },
 ];
