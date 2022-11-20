@@ -1,6 +1,5 @@
 const Article = require("../models/article");
 const { body, validationResult } = require("express-validator");
-const article = require("../models/article");
 
 const { verifyUser } = require("../utils/authenticate");
 
@@ -25,8 +24,7 @@ exports.get_articles = (req, res, next) => {
 
 exports.get_single_article = (req, res) => {
   const articleId = req.params.id;
-  article
-    .findById(articleId)
+  Article.findById(articleId)
     .populate("author", " -password -username")
     .exec((err, article_info) => {
       if (err) {
@@ -49,29 +47,34 @@ exports.post_article = [
     .isLength({ min: 1 })
     .escape(),
   body("published", "published should be a boolean value").isBoolean().escape(),
-  (req, res, next) => {
+  async (req, res, next) => {
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
       return res.status(403).json({ response: errors });
     }
+    try {
+      let article = new Article({
+        author: req.user._id,
+        title: req.body.title,
+        content: req.body.content,
+        published: req.body.published,
+      });
 
-    const article = new Article({
-      author: req.user._id,
-      title: req.body.title,
-      content: req.body.content,
-      published: req.body.published,
-      published_date: new Date(),
-    }).save((err) => {
-      if (err) {
-        return res.status(500).json({ response: err });
-      }
+      req.body.published === "true"
+        ? (article.published_date = new Date())
+        : null;
+
+      const saveArticle = await article.save();
+
       return res.status(200).json({
         succes: true,
-        response: "article added succefully",
+        response: "Article added succefully",
         article: article,
       });
-    });
+    } catch (error) {
+      res.status(500).json(error);
+    }
   },
 ];
 
@@ -83,7 +86,7 @@ exports.put_article = [
     .isLength({ min: 1 })
     .escape(),
   body("published", "published should be a boolean value").isBoolean().escape(),
-  (req, res, next) => {
+  async (req, res, next) => {
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
@@ -91,38 +94,55 @@ exports.put_article = [
     }
     const articleId = req.params.id;
 
-    Article.findByIdAndUpdate(
-      articleId,
-      {
-        title: req.body.title,
-        content: req.body.content,
-        published: req.body.published,
-      },
-      (err) => {
-        if (err) {
-          return res.status(403).json({ response: err });
-        }
-        res
-          .status(200)
-          .json({ succes: true, response: "article updated succefully" });
+    try {
+      const articleRequest = await Article.findById(articleId);
+      if (articleRequest.author.toString() === req.user._id.toString()) {
+        articleRequest.title = req.body.title;
+        articleRequest.content = req.body.content;
+        articleRequest.published = req.body.published;
+
+        req.body.published === "true" && !req.body.published_date
+          ? (articleRequest.published_date = new Date())
+          : null;
+
+        await articleRequest.save();
+
+        return res.status(200).json({
+          succes: true,
+          response: "article updated succefully",
+          articleRequest,
+        });
+      } else {
+        return res.status(403).json({
+          response: "Only user creator of the article are allowed to edit it",
+        });
       }
-    );
+    } catch (error) {
+      return res.status(500).json(err);
+    }
   },
 ];
 
 exports.delete_article = [
   verifyUser,
-  (req, res, next) => {
+  async (req, res, next) => {
     const articleId = req.params.id;
 
-    Article.findByIdAndDelete(articleId, {}, (err) => {
-      if (err) {
-        return res
-          .status(404)
-          .json({ response: `cannot found article ${articleId}` });
-      }
+    try {
+      const articleRequest = await Article.findById(articleId);
+      if (articleRequest.author.toString() === req.user._id.toString()) {
+        const deleteArticle = await Article.findByIdAndDelete(articleId, {});
 
-      return next();
-    });
+        return res
+          .status(200)
+          .json({ response: "article deleted successfully" });
+      } else {
+        return res
+          .status(403)
+          .json("Only user creator of the article are allowed to delete it");
+      }
+    } catch (error) {
+      res.status(500).json({ error });
+    }
   },
 ];
