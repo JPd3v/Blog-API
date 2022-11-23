@@ -101,7 +101,7 @@ exports.put_article = [
         articleRequest.content = req.body.content;
         articleRequest.published = req.body.published;
 
-        req.body.published === "true" && !req.body.published_date
+        req.body.published === "true" && !articleRequest.published_date
           ? (articleRequest.published_date = new Date())
           : null;
 
@@ -133,9 +133,7 @@ exports.delete_article = [
       if (articleRequest.author.toString() === req.user._id.toString()) {
         const deleteArticle = await Article.findByIdAndDelete(articleId, {});
 
-        return res
-          .status(200)
-          .json({ response: "article deleted successfully" });
+        return next();
       } else {
         return res
           .status(403)
