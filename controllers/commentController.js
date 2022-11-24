@@ -1,4 +1,6 @@
 const Comment = require("../models/comment");
+const Article = require("../models/article");
+
 const { body, validationResult } = require("express-validator");
 const { verifyUser } = require("../utils/authenticate");
 
@@ -48,17 +50,26 @@ exports.post_comment_article = [
 
 exports.delete_comment_article = [
   verifyUser,
-  (req, res) => {
+  async (req, res) => {
     const commentId = req.params.commentId;
+    try {
+      const comment = await Comment.findById(commentId);
+      const article = await Article.findById(comment.article_id);
 
-    Comment.findByIdAndDelete(commentId, {}, (err) => {
-      if (err) {
-        return res.status(500).json(err);
+      if (article.author.toString() === req.user._id.toString()) {
+        await Comment.findByIdAndDelete(commentId, {});
+
+        return res.status(200).json({ response: "comment deleted succefully" });
       }
+
       return res
-        .status(200)
-        .json({ succes: true, response: "comment deleted succefully" });
-    });
+        .status(403)
+        .json(
+          "Only user creator of the article are allowed to delete their comments"
+        );
+    } catch (error) {
+      return res.status(500).json(error);
+    }
   },
 ];
 
