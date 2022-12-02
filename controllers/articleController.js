@@ -113,7 +113,7 @@ exports.put_article = [
           articleRequest,
         });
       } else {
-        return res.status(403).json({
+        return res.status(401).json({
           response: "Only user creator of the article are allowed to edit it",
         });
       }
